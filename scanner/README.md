@@ -1,6 +1,7 @@
 # Aqua Security | Scanner Helm
 
 The scanner can operate in either of two modes:
+
 * **Direct scanning mode** (previously called "scanning without a Docker socket"): The scanner pulls the image directly from a registry, and scans it as a file.
 * **Docker scanning mode** The scanner is mounted to the local Docker service (docker.sock) to pull the image, and scans it as a running container. This mode is supported only if the container engine is Docker.
 

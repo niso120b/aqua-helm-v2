@@ -12,41 +12,44 @@ In order to disable this functionality you can change the values.yaml to disable
 
  Most managed Kubernetes deployments do NOT include all possible storage provider variations at setup time. Refer to the [official Kubernetes guidance on storage classes](https://kubernetes.io/docs/concepts/storage/storage-classes/) for your platform. Three examples are shown below.
 
-  * Amazon EKS
-    ```yaml
-    kind: StorageClass
-    apiVersion: storage.k8s.io/v1
-    metadata:
-      name: aqua-console-db-data
-    provisioner: kubernetes.io/aws-ebs
-    parameters:
-      type: gp2
-    reclaimPolicy: Retain
-    mountOptions:
-      - debug
-    volumeBindingMode: Immediate
-      ```
+* Amazon EKS
 
-  * Azure AKS
-    ```yaml
-    kind: StorageClass
-    apiVersion: storage.k8s.io/v1
-    metadata:
-      name: slow
-    provisioner: kubernetes.io/azure-disk
-    parameters:
-      storageaccounttype: Standard_LRS
-      kind: Shared
-    ```
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: aqua-console-db-data
+provisioner: kubernetes.io/aws-ebs
+parameters:
+  type: gp2
+reclaimPolicy: Retain
+mountOptions:
+  - debug
+volumeBindingMode: Immediate
+  ```
 
-  * Google GKE
-    ```yaml
-    kind: StorageClass
-    apiVersion: storage.k8s.io/v1
-    metadata:
-      name: slow
-    provisioner: kubernetes.io/gce-pd
-    parameters:
-      type: pd-standard
-    replication-type: none
-    ```
+* Azure AKS
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: slow
+provisioner: kubernetes.io/azure-disk
+parameters:
+  storageaccounttype: Standard_LRS
+  kind: Shared
+```
+
+* Google GKE
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: slow
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+replication-type: none
+```
