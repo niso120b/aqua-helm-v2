@@ -1,0 +1,47 @@
+replicaCount: 1
+
+image:
+  registry: registry.aquasec.com
+  repository: scanner
+  tag: "5.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  # the image pull secrets list
+  imagePullSecrets: []
+
+securityContext: {}
+  # privileged: false
+
+resources: {}
+  # Note: For recommendations please check the official sizing guide.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+aqua:
+  # required user with scanning permissions
+  user: administrator
+  # required password
+  password:
+  # required aqua host
+  host:
+  # Scanning mode direct or docker https://docs.aquasec.com/docs/scanning-mode#default-scanning-mode
+  dockerless: true # true / false
+  # docker socket path for example for pks - /var/vcap/data/sys/run/docker/docker.sock
+  dockerSocketPath: /var/run/docker.sock 

@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "enforcer.fullname" . }}
+  labels:
+    {{- include "enforcer.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "enforcer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "enforcer.selectorLabels" . | nindent 8 }}
+      {{- if eq .Values.securityContext.privileged false }}
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/aqua-agent: unconfined
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "enforcer.serviceAccountName" . }}
+      hostPID: true
+      restartPolicy: Always
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry}}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- if .Values.aqua.token }}
+          - name: AQUA_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "enforcer.fullname" . }}-token
+                key: token
+          {{- else }}
+          - name: AQUA_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.aqua.tokenSecret.name }}
+                key: {{ .Values.aqua.tokenSecret.key }}
+          {{- end }}
+          - name: AQUA_SERVER
+            value: {{ required "Please specify a gateway address for example aqua-gateway:8443" .Values.aqua.gateway }}
+          - name: AQUA_INSTALL_PATH
+            value: /var/lib/aquasec
+          {{- if .Values.aqua.networkControl }}
+          - name: AQUA_NETWORK_CONTROL
+            value: "1"
+          {{- else }}
+          - name: AQUA_NETWORK_CONTROL
+            value: "0"
+          {{- end }}
+          {{- if .Values.aqua.runcInterception }}
+          - name: AQUA_RUNC_INTERCEPTION
+            value: "1"
+          {{- else }}
+          - name: AQUA_RUNC_INTERCEPTION
+            value: "0"
+          {{- end }}
+          {{- if .Values.aqua.hostRunPath }}
+          - name: AQUA_HOST_RUN_PATH
+            value: {{ .Values.aqua.hostRunPath }}
+          {{- end }}
+          {{- if .Values.aqua.restartContainers }}
+          - name: RESTART_CONTAINERS
+            value: "yes"
+          {{- end }}
+          volumeMounts:
+          - mountPath: /var/run
+            name: var-run
+          - mountPath: /dev
+            name: dev
+          - mountPath: /host/sys
+            name: sys
+            readOnly: true
+          - mountPath: /host/proc
+            name: proc
+            readOnly: true
+          - mountPath: /host/etc
+            name: etc
+            readOnly: true
+          - mountPath: /host/opt/aquasec
+            name: aquasec
+            readOnly: true
+          - mountPath: /opt/aquasec/tmp
+            name: aquasec-tmp
+          - mountPath: /opt/aquasec/audit
+            name: aquasec-audit
+          - mountPath: /data
+            name: aquasec-data
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+      {{- if .Values.aqua.hostRunPath }}
+      - name: var-run
+        hostPath:
+          path: {{ .Values.hostRunPath }}
+      {{- else }}
+      - name: var-run
+        hostPath:
+          path: /var/run
+      {{- end }}
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: etc
+        hostPath:
+          path: /etc
+      - name: aquasec
+        hostPath:
+          path: /var/lib/aquasec
+      - name: aquasec-tmp
+        hostPath:
+          path: /var/lib/aquasec/tmp
+      - name: aquasec-audit
+        hostPath:
+          path: /var/lib/aquasec/audit
+      - name: aquasec-data
+        hostPath:
+          path: /var/lib/aquasec/data

@@ -1,0 +1,12 @@
+
+Thank you for installing Aqua Security Database.
+
+Now that you have deployed aqua database, you should look over the docs on using: 
+
+https://docs.aquasec.com/
+
+
+Your release is named {{ .Release.Name }}. To learn more about the release, try:
+
+  $ helm status {{ .Release.Name }}
+  $ helm get {{ .Release.Name }}

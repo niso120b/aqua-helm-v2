@@ -1,0 +1,81 @@
+{{/* vim: set filetype=mustache: */}}
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "csp.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Create a default fully qualified app name.
+We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
+If release name contains chart name it will be used as a full name.
+*/}}
+{{- define "csp.fullname" -}}
+{{- if .Values.fullnameOverride -}}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- $name := default .Chart.Name .Values.nameOverride -}}
+{{- if contains $name .Release.Name -}}
+{{- .Release.Name | trunc 63 | trimSuffix "-" -}}
+{{- else -}}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "csp.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{/*
+Common labels
+*/}}
+{{- define "csp.labels" -}}
+helm.sh/chart: {{ include "csp.chart" . }}
+{{ include "csp.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end -}}
+
+{{/*
+Selector labels
+*/}}
+{{- define "csp.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "csp.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end -}}
+
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "csp.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create -}}
+    {{ default (include "csp.fullname" .) .Values.serviceAccount.name }}
+{{- else -}}
+    {{ default "default" .Values.serviceAccount.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the name of the image pull secret to use
+*/}}
+{{- define "csp.imagePullSecret" -}}
+{{- if .Values.registry.imagePullSecret.create -}}
+    {{ default (include "csp.fullname" .) .Values.registry.imagePullSecret.name }}
+{{- else -}}
+    {{ default "default" .Values.registry.imagePullSecret.name }}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Create the auths context of the image pull secret to use
+*/}}
+{{- define "imagePullSecret" }}
+{{- printf "{\"auths\": {\"%s\": {\"auth\": \"%s\"}}}" (required "A valid .Values.registry.name entry required!" .Values.registry.name) (printf "%s:%s" (required "A valid .Values.registry.username entry required!" .Values.registry.username) (required "A valid .Values.registry.password entry required!" .Values.registry.password) | b64enc) | b64enc }}
+{{- end }}

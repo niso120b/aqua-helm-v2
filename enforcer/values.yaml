@@ -1,0 +1,74 @@
+image:
+  registry: registry.aquasec.com
+  repository: enforcer
+  tag: "5.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  # the image pull secrets list
+  imagePullSecrets: []
+
+securityContext:
+  privileged: true
+  # Note: enforcer deployment in non privileged mode https://docs.aquasec.com/docs/enforcer-deployment-in-non-privileged-mode#kubernetes-deployments
+  # privileged: false
+  # capabilities:
+  #   add:
+  #     - SYS_ADMIN
+  #     - NET_ADMIN
+  #     - NET_RAW
+  #     - SYS_PTRACE
+  #     - KILL
+  #     - MKNOD
+  #     - SETGID
+  #     - SETUID
+  #     - SYS_MODULE
+  #     - AUDIT_CONTROL
+  #     - SYSLOG
+  #     - SYS_CHROOT
+
+resources: {}
+  # Note: For recommendations please check the official sizing guide.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+aqua:
+  # to the gateway address and port. Do not provide the scheme (e.g., https://). 
+  # Simply provide the IP address or DNS name of the gateway, and the HTTPS port.
+  # 3622 ssh communication between enforcer and gateway
+  # 8443 grpc communication between enforcer and gateway
+  gateway:
+  # Specify false if you would like the Aqua Enforcer to be deployed without modifying the host's iptable. 
+  # This will disable the network firewall functionality of the deployed Enforcer.
+  networkControl: true
+  # for changing host run path for example for pks need to change to /var/vcap/sys/run/docker
+  hostRunPath:
+  # Specify true for making the Enforcer restart all containers that were running before Aqua was deployed. 
+  # The default value is false
+  restartContainers: false
+  # Specify the "interception mode" for the Enforcer:
+  # false = Docker; the Enforcer will intercept container-related commands from docker.sock, process them, and send commands to scalock.sock (which communicates with the Docker daemon)
+  # true = runC; the Enforcer will receive container-related commands from runC, process them, and send commands back to runC. This mode provides improved stability during Enforcer deployment and operation, with significantly reduced impact on performance.
+  # In Aqua CSP Version 4.6, the default interception mode is true (runC).
+  runcInterception: false
+  # Specify the installation token retrieved from the Aqua Server.
+  token:
+  tokenSecret:
+    name:
+    key:

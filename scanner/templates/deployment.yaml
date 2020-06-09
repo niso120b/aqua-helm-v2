@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "scanner.fullname" . }}
+  labels:
+    {{- include "scanner.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "scanner.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "scanner.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "scanner.serviceAccountName" . }}
+      containers:
+        - name: scanner
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry}}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+          - "daemon"
+          - "--user"
+          - "{{ required "Please specify a username associated with the Scanner role!" .Values.aqua.user }}"
+          - "--password"
+          - "{{ required "Please specify a password for a user associated with the Scanner role!" .Values.aqua.password }}"
+          - "--host"
+          - "{{ required "Please specify a aqua host for example http://aqua-web:8080" .Values.aqua.host }}"
+          {{- if or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless) }}
+          volumeMounts:
+          - mountPath: /var/run/docker.sock
+            name: docker-socket-mount
+          {{- end }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      {{- if or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless) }}
+      volumes:
+      - name: docker-socket-mount
+        hostPath:
+          path: {{ .Values.aqua.dockerSocketPath }}
+      {{- end }}

@@ -1,0 +1,164 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "server.fullname" . }}
+  labels:
+    {{- include "server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "server.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "server.serviceAccountName" . }}
+      containers:
+        - name: server
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry}}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          {{- if .Values.persistence.enabled }}
+          - name: AQUA_CONSOLE_RAW_SCAN_RESULTS_STORAGE_SIZE
+            value: {{ .Values.persistence.size | quote }}
+          {{- end }}
+          - name: SCALOCK_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: SCALOCK_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: SCALOCK_DBNAME
+            value: {{ .Values.aqua.db.scalockName | default "scalock" }}
+          - name: SCALOCK_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: SCALOCK_DBPORT
+            value: {{ .Values.aqua.db.port| default 5432 | quote }}
+          - name: SCALOCK_AUDIT_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: SCALOCK_AUDIT_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: SCALOCK_AUDIT_DBNAME
+            value: {{ .Values.aqua.db.auditName | default "slk_audit" }}
+          - name: SCALOCK_AUDIT_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: SCALOCK_AUDIT_DBPORT
+            value: {{ .Values.aqua.db.port | default 5432 | quote }}
+          {{- if .Values.aqua.activeactive }}
+          - name: AQUA_PUBSUB_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: AQUA_PUBSUB_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: AQUA_PUBSUB_DBNAME
+            value: {{ .Values.aqua.db.pubsubName | default "slk_audit" }}
+          - name: AQUA_PUBSUB_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: AQUA_PUBSUB_DBPORT
+            value: {{ .Values.aqua.db.port | default 5432 | quote }}
+          - name: AQUA_CLUSTER_MODE
+            value: "active-active"
+          {{- end }}
+          {{- if .Values.aqua.db.ssl }}
+          - name: SCALOCK_DBSSL
+            value: require
+          - name: SCALOCK_AUDIT_DBSSL
+            value: require
+          {{- end }}
+          {{- if .Values.aqua.dockerless }}
+          - name: AQUA_DOCKERLESS_SCANNING
+            value: "1"
+          - name: DISABLE_IP_BAN
+            value: "1"
+          {{- else }}
+          - name: AQUA_DOCKERLESS_SCANNING
+            value: "0"
+          - name: DISABLE_IP_BAN
+            value: "0"
+          {{- end }}
+          {{- if .Values.aqua.encryptionKey }}
+          - name: SCALOCK_ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "server.fullname" . }}-encryption-key
+                key: encryption-key
+          {{- end }}
+          {{- if .Values.aqua.licenseToken }}
+          - name: LICENSE_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "server.fullname" . }}-license-token
+                key: license-token
+          {{- end }}
+          {{- if .Values.aqua.adminPassword }}
+          - name: ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "server.fullname" . }}-admin-password
+                key: admin-password
+          {{- end }}
+          {{- if .Values.aqua.httpProxy }}
+          - name: http_proxy
+            value: {{ .Values.aqua.httpProxy }}
+          {{- end }}
+          {{- if .Values.aqua.httpsProxy }}
+          - name: https_proxy
+            value: {{ .Values.aqua.httpsProxy }}
+          {{- end }}
+          {{- if .Values.aqua.noProxy }}
+          - name: no_proxy
+            value: {{ .Values.aqua.noProxy }}
+          {{- end }}
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          - containerPort: 8443
+            protocol: TCP
+          {{- if or (or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless)) .Values.persistence.enabled }}
+          volumeMounts:
+          {{- if or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless) }}
+          - mountPath: /var/run/docker.sock
+            name: docker-socket-mount
+          {{- end }}
+          {{- if .Values.persistence.enabled }}
+          - mountPath: /opt/aquasec/raw-scan-results
+            name: aqua-web-pvc
+          {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      {{- if or (or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless)) .Values.persistence.enabled }}
+      volumes:
+      {{- if or ((eq .Values.aqua.dockerless false) not .Values.aqua.dockerless) }}
+      - name: docker-socket-mount
+        hostPath:
+          path: {{ .Values.aqua.dockerSocketPath }}
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      - name: aqua-web-pvc
+        persistentVolumeClaim:
+          claimName: {{ template "server.fullname" . }}-pvc
+      {{- end }}
+      {{- end }}

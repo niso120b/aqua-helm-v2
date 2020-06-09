@@ -1,0 +1,73 @@
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: aqua-sa
+  # the image pull secrets list
+  imagePullSecrets: []
+
+registry:
+  imagePullSecret:
+    # Specifies whether a image pull secret should be created
+    create: true
+    # The name of the image pull secret to use.
+    # If not set and create is true, a name is generated using the fullname template
+    name: aqua-registry
+  # aqua private registry
+  name: registry.aquasec.com
+  # aqua registry username
+  username: 
+  # aqua registry password
+  password:
+
+# Note: you add more parameter to database please view REAMDME.md file in database folder
+database:
+  enable: true
+  serviceAccount:
+    name: aqua-sa
+    imagePullSecrets: 
+    - aqua-registry
+  
+  service:
+    type: ClusterIP
+
+# Note: you add more parameter to gateway please view REAMDME.md file in gateway folder
+gateway:
+  serviceAccount:
+    name: aqua-sa
+    imagePullSecrets: 
+    - aqua-registry
+
+  service:
+    type: ClusterIP
+
+  aqua:
+    consoleSecureAddress: # required
+    db:
+      host: # required
+      port: 5432
+      passwordSecret:
+        name: # required
+        key: # required
+
+# Note: you add more parameter to server please view REAMDME.md file in server folder
+server:
+  serviceAccount:
+    name: aqua-sa
+    imagePullSecrets: 
+    - aqua-registry
+
+  service:
+    type: ClusterIP
+
+  aqua:
+    db:
+      host: # required
+      port: 5432
+      passwordSecret:
+        name: # required
+        key: # required

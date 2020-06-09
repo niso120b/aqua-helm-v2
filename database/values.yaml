@@ -1,0 +1,76 @@
+replicaCount: 1
+
+image:
+  registry: registry.aquasec.com
+  repository: database
+  tag: "5.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: false
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+  # the image pull secrets list
+  imagePullSecrets: []
+
+securityContext: {}
+  # Note: To run Aqua components as a non-privileged account 
+  # runAsNonRoot: true
+  # runAsUser: 11431
+  # runAsGroup: 11433
+  # fsGroup: 11433
+
+service:
+  type: ClusterIP
+  port: 5432
+
+ingress:
+  enabled: false
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths: []
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources: {}
+  # Note: For recommendations please check the official sizing guide.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+persistence:
+  enabled: true
+  accessModes:
+    - ReadWriteOnce
+  annotations: {}
+  # A manually managed Persistent Volume and Claim
+  # Requires persistence.enabled: true
+  # If defined, PVC must be created manually before volume will be bound
+  # existingClaim: <PVC Name>
+  existingClaim: ""
+  size: 30Gi
+  # database data Persistent Volume Storage Class
+  # If defined, storageClassName: <storageClass>
+  # If set to "-", storageClassName: "", which disables dynamic provisioning
+  # If undefined (the default) or set to null, no storageClassName spec is
+  #   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  #   GKE, AWS & OpenStack)
+  #
+  # storageClass: "-"

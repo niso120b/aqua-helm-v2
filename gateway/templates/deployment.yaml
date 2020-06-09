@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gateway.fullname" . }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gateway.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "gateway.serviceAccountName" . }}
+      containers:
+        - name: gateway
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.registry}}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: HEALTH_MONITOR
+            value: "0.0.0.0:8082"
+          - name: AQUA_CONSOLE_SECURE_ADDRESS
+            value: {{ required "Please specify a aqua console secure address" .Values.aqua.consoleSecureAddress }}
+          - name: SCALOCK_GATEWAY_PUBLIC_IP
+            value: {{ .Values.aqua.gatewayPublicIp | default (include "gateway.fullname" .) }}
+          - name: SCALOCK_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: SCALOCK_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: SCALOCK_DBNAME
+            value: {{ .Values.aqua.db.scalockName | default "scalock" }}
+          - name: SCALOCK_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: SCALOCK_DBPORT
+            value: {{ .Values.aqua.db.port| default 5432 | quote }}
+          - name: SCALOCK_AUDIT_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: SCALOCK_AUDIT_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: SCALOCK_AUDIT_DBNAME
+            value: {{ .Values.aqua.db.auditName | default "slk_audit" }}
+          - name: SCALOCK_AUDIT_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: SCALOCK_AUDIT_DBPORT
+            value: {{ .Values.aqua.db.port | default 5432 | quote }}
+          {{- if .Values.aqua.activeactive }}
+          - name: AQUA_PUBSUB_DBUSER
+            value: {{ .Values.aqua.db.user | default "postgres" }}
+          - name: AQUA_PUBSUB_DBPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ required "Please specify a aqua database password secret name" .Values.aqua.db.passwordSecret.name }}
+                key: {{ required "Please specify a aqua database password secret key" .Values.aqua.db.passwordSecret.key }}
+          - name: AQUA_PUBSUB_DBNAME
+            value: {{ .Values.aqua.db.pubsubName | default "slk_audit" }}
+          - name: AQUA_PUBSUB_DBHOST
+            value: {{ .Values.aqua.db.host }}
+          - name: AQUA_PUBSUB_DBPORT
+            value: {{ .Values.aqua.db.port | default 5432 | quote }}
+          {{- end }}
+          {{- if .Values.aqua.db.ssl }}
+          - name: SCALOCK_DBSSL
+            value: require
+          - name: SCALOCK_AUDIT_DBSSL
+            value: require
+          {{- end }}
+          ports:
+            - containerPort: 3622
+              protocol: TCP
+            - containerPort: 8443
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
